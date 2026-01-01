@@ -7,29 +7,40 @@ COPY frontend/ ./
 RUN npm run build
 
 # Stage 2: Build Python Backend
-FROM python:3.9
-# Using full Python image (Debian based) which includes gcc, make, etc.
+FROM python:3.9-slim-bullseye
 
 WORKDIR /app
 
-# 1. Force Single-Core Build for dlib (Prevents OOM / Status 1 error)
+# Ensure single-core build for dlib (Memory safety)
 ENV CMAKE_BUILD_PARALLEL_LEVEL=1
 
-# 2. Update pip and install build tools via pip (Avoids apt-get errors)
-# We use opencv-python-headless, so we don't need libgl1 via apt-get!
-RUN pip install --no-cache-dir --upgrade pip wheel setuptools cmake
+# Install system dependencies
+# 1. rm -rf lists to fix "Exit 100" (Corrupt cache)
+# 2. Install build-essential and blas for dlib compilation
+RUN rm -rf /var/lib/apt/lists/* && \
+    apt-get clean && \
+    apt-get update --fix-missing && \
+    apt-get install -y --no-install-recommends \
+    build-essential \
+    cmake \
+    libopenblas-dev \
+    liblapack-dev \
+    libx11-dev \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
 
-# 3. Install Python dependencies
+# Install Python dependencies
 COPY backend/requirements.txt ./backend/
-RUN pip install --no-cache-dir -r backend/requirements.txt
+RUN pip install --no-cache-dir --upgrade pip wheel setuptools && \
+    pip install --no-cache-dir -r backend/requirements.txt
 
 # Copy backend code
 COPY backend/ ./backend/
 
-# Copy built frontend assets from Stage 1
+# Copy built frontend assets
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 
-# Set working directory to backend
 WORKDIR /app/backend
 
 # Expose port
