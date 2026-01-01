@@ -4,6 +4,9 @@ python-multipart
 sqlalchemy
 face_recognition
 numpy
-opencv-python
+opencv-python-headless
 deepface
 tf-keras
+gunicorn
+google-generativeai
+python-dotenv

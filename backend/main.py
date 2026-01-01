@@ -242,3 +242,22 @@ async def chat_agent(request: ChatRequest, db: Session = Depends(get_db)):
 def get_chat_history(face_id: int, db: Session = Depends(get_db)):
     messages = db.query(Message).filter(Message.face_id == face_id).order_by(Message.timestamp.asc()).all()
     return messages
+
+# Serve Static Files (Make sure this is at the end)
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import os
+
+# Mount the static directory (built React app)
+# Check if the build folder exists (it will on Render)
+if os.path.exists("../frontend/dist"):
+    app.mount("/assets", StaticFiles(directory="../frontend/dist/assets"), name="assets")
+
+    # Catch-all route to serve React's index.html for any other path
+    @app.get("/{full_path:path}")
+    async def serve_react_app(full_path: str):
+        # Allow API routes to pass through (already handled above)
+        if full_path.startswith("api") or full_path.startswith("docs") or full_path.startswith("openapi.json"):
+             raise HTTPException(status_code=404)
+        
+        return FileResponse("../frontend/dist/index.html")
