@@ -5,8 +5,8 @@ sqlalchemy
 face_recognition
 numpy
 opencv-python-headless
-deepface
-tf-keras
 gunicorn
+google-generativeai
+python-dotenv
 google-generativeai
 python-dotenv
