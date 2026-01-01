@@ -7,15 +7,27 @@ COPY frontend/ ./
 RUN npm run build
 
 # Stage 2: Build Python Backend
-FROM python:3.9
-# Using full Python image which includes build tools (gcc, make)
+FROM python:3.9-slim
 
 WORKDIR /app
 
+# Set environment variable to limit compilation to 1 core (Fixes OOM)
+ENV CMAKE_BUILD_PARALLEL_LEVEL=1
+
+# Install system dependencies
+# Added --fix-missing and clean to handle repo errors
+RUN apt-get update --fix-missing && apt-get install -y \
+    cmake \
+    build-essential \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
 # Install Python dependencies
 COPY backend/requirements.txt ./backend/
-# Install cmake via pip, upgrade pip, and install requirements
-RUN pip install --no-cache-dir --upgrade pip cmake wheel setuptools && \
+RUN pip install --no-cache-dir --upgrade pip wheel setuptools cmake && \
+    # Install dlib first explicitly to manage the build
+    pip install --no-cache-dir dlib && \
     pip install --no-cache-dir -r backend/requirements.txt
 
 # Copy backend code
@@ -27,7 +39,7 @@ COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 # Set working directory to backend
 WORKDIR /app/backend
 
-# Expose port (Render uses 10000 by default for Docker)
+# Expose port
 EXPOSE 10000
 
 # Start command
