@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+python-multipart
+sqlalchemy
+face_recognition
+numpy
+opencv-python
+deepface
+tf-keras
