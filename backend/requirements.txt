@@ -8,5 +8,3 @@ opencv-python-headless
 gunicorn
 google-generativeai
 python-dotenv
-google-generativeai
-python-dotenv
