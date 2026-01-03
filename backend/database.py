@@ -12,23 +12,28 @@ if DATABASE_URL.startswith("sqlite"):
     engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 else:
     # Handle Render's postgres:// schema (SQLAlchemy requires postgresql:// or postgresql+psycopg2://)
-    if DATABASE_URL.startswith("postgres://"):
-        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg2://", 1)
-    elif DATABASE_URL.startswith("postgresql://"):
-        DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
+    import time
+
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg2://", 1).replace("postgresql://", "postgresql+psycopg2://", 1)
     
     print(f"DEBUG: Attempting to connect to DB: {DATABASE_URL.split('@')[-1]}") # Log host only
-    
-    try:
-        engine = create_engine(DATABASE_URL)
-        # Test connection
-        with engine.connect() as connection:
-            print("DEBUG: Database Connection Successful!")
-    except Exception as e:
-        print(f"ERROR: Database Connection Failed: {e}")
-        print("WARNING: Falling back to temporary SQLite database (Data will not persist)")
-        DATABASE_URL = "sqlite:///./temp_faces.db"
-        engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+
+    MAX_RETRIES = 5
+    for attempt in range(MAX_RETRIES):
+        try:
+            engine = create_engine(DATABASE_URL)
+            # Test connection
+            with engine.connect() as connection:
+                print("DEBUG: Database Connection Successful!")
+                break
+        except Exception as e:
+            print(f"ERROR: Database Connection Failed (Attempt {attempt + 1}/{MAX_RETRIES}): {e}")
+            if attempt < MAX_RETRIES - 1:
+                time.sleep(2) # Wait 2 seconds before retrying
+            else:
+                print("WARNING: All connection attempts failed. Falling back to temporary SQLite database (Data will not persist)")
+                DATABASE_URL = "sqlite:///./temp_faces.db"
+                engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
