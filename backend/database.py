@@ -11,10 +11,25 @@ DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./faces.db")
 if DATABASE_URL.startswith("sqlite"):
     engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 else:
-    # Handle Render's postgres:// schema (SQLAlchemy requires postgresql://)
+    # Handle Render's postgres:// schema (SQLAlchemy requires postgresql:// or postgresql+psycopg2://)
     if DATABASE_URL.startswith("postgres://"):
-        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
-    engine = create_engine(DATABASE_URL)
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg2://", 1)
+    elif DATABASE_URL.startswith("postgresql://"):
+        DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
+    
+    print(f"DEBUG: Attempting to connect to DB: {DATABASE_URL.split('@')[-1]}") # Log host only
+    
+    try:
+        engine = create_engine(DATABASE_URL)
+        # Test connection
+        with engine.connect() as connection:
+            print("DEBUG: Database Connection Successful!")
+    except Exception as e:
+        print(f"ERROR: Database Connection Failed: {e}")
+        print("WARNING: Falling back to temporary SQLite database (Data will not persist)")
+        DATABASE_URL = "sqlite:///./temp_faces.db"
+        engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
