@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.PROD ? 'https://fitai-cowo.onrender.com' : 'http://127.0.0.1:8000';
+const API_URL = import.meta.env.PROD ? 'https://fitai-jjug.onrender.com' : 'http://127.0.0.1:8000';
 
 export const registerFace = async (name, age, height, weight, imageFile) => {
     const formData = new FormData();
